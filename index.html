@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>New Chat</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Roboto:wght@400;500;700&family=Google+Sans:wght@400;500&display=swap" rel="stylesheet">
 
@@ -164,7 +164,10 @@
                     <textarea id="gpt-input" class="gpt-textarea" rows="1" placeholder="Send a message..."></textarea>
                     <button id="gpt-send" class="gpt-send">➤</button>
                 </div>
-                <div style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:10px;">ChatGPT can make mistakes.</div>
+                <div style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:10px; text-align:center;">
+                  ChatGPT can make mistakes.<br>
+                  Respones can take up to a minute to generate.
+                </div>
             </div>
         </div>
     </div>
@@ -250,7 +253,7 @@
         let currentModeIndex = 0;
         let currentMessages = []; 
         let activeChatId = null;
-        let savedChats = JSON.parse(localStorage.getItem('suite_history_fixed')) || [];
+        let savedChats = JSON.parse(localStorage.getItem('suite_history_math_fixed')) || [];
         let abortCtrl = null;
 
         const ui = {
@@ -276,6 +279,7 @@
             renderHistory();
             ui.gpt.input.focus();
             resizeGptInput();
+            document.title = "New Chat";
         };
 
         // --- ENTER KEY HANDLER (Stealth Mode) ---
@@ -286,7 +290,6 @@
             }
         }
         
-        // Add Listeners for Stealth inputs
         ui.canvas.paper.addEventListener('keydown', (e) => handleEnter(e, handleCanvasSend));
         ui.docs.paper.addEventListener('keydown', (e) => handleEnter(e, handleDocsSend));
 
@@ -304,8 +307,13 @@
             if (newMode === 'gpt') {
                 ui.btnSwitch.innerText = "Enter Stealth Mode";
                 ui.gpt.input.focus();
-            } else {
+                document.title = "New Chat";
+            } else if (newMode === 'canvas') {
                 ui.btnSwitch.innerText = "Switch View";
+                document.title = "Final Research Essay";
+            } else if (newMode === 'docs') {
+                ui.btnSwitch.innerText = "Switch View";
+                document.title = "Untitled document - Google Docs";
             }
         }
 
@@ -313,42 +321,26 @@
         
         // 1. ChatGPT Renderer (Markdown + Math)
         function renderMarkdownWithMath(element, text) {
-            // Protect math blocks from Markdown parser
             const mathSegments = [];
             const protectedText = text.replace(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\))/g, (match) => {
                 mathSegments.push(match);
                 return `%%%MATH${mathSegments.length - 1}%%%`;
             });
-            
-            // Parse Markdown
             let html = marked.parse(protectedText);
-            
-            // Restore Math
             html = html.replace(/%%%MATH(\d+)%%%/g, (match, index) => mathSegments[index]);
-            
             element.innerHTML = html;
-            
-            // Render Math
             renderMathInElement(element, {
                 delimiters: [{left: '$$', right: '$$', display: true}, {left: '\\[', right: '\\]', display: true}, {left: '\\(', right: '\\)', display: false}],
                 throwOnError: false
             });
-            
-            // Highlight Code
             element.querySelectorAll('pre code').forEach(hljs.highlightElement);
         }
 
         // 2. Canvas/Docs Renderer (Plain Text + Math Only)
         function renderTextWithMath(element, text) {
-            // Escape HTML to prevent injection
             let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            
-            // Convert newlines to breaks
             html = html.replace(/\n/g, '<br>');
-            
             element.innerHTML = html;
-            
-            // Render Math
             renderMathInElement(element, {
                 delimiters: [{left: '$$', right: '$$', display: true}, {left: '\\[', right: '\\]', display: true}, {left: '\\(', right: '\\)', display: false}],
                 throwOnError: false
@@ -424,11 +416,9 @@
             
             const context = [{role:'system', content:"You are ChatGPT. Use LaTeX for math."}, ...currentMessages.slice(-6)];
             await fetchResponse(context, (txt) => {
-                // Streaming: Just show markdown raw to avoid flicker
                 contentDiv.innerHTML = marked.parse(txt);
                 ui.gpt.chat.scrollTop = ui.gpt.chat.scrollHeight;
             }, (final) => {
-                // Final: Render Math + Markdown
                 renderMarkdownWithMath(contentDiv, final);
                 currentMessages.push({role:'assistant', content:final});
                 saveChat();
@@ -449,14 +439,13 @@
         async function handleCanvasSend() {
             const text = ui.canvas.paper.innerText.trim();
             if(!text) return;
-            ui.canvas.paper.innerText = ""; 
+            ui.canvas.paper.innerText = ""; 
             
             const context = [{role:'system', content:"You are ChatGPT. Use LaTeX for math."}, {role:'user', content:text}];
             await fetchResponse(context, (txt) => {
-                ui.canvas.paper.innerText = txt; // Streaming raw text
+                ui.canvas.paper.innerText = txt; 
                 ui.canvas.paper.scrollTop = ui.canvas.paper.scrollHeight;
             }, (final) => {
-                // Final: Render Plain Text + Math (NO Markdown)
                 renderTextWithMath(ui.canvas.paper, final);
             });
         }
@@ -472,7 +461,6 @@
             await fetchResponse(context, (txt) => {
                 ui.docs.paper.innerText = txt;
             }, (final) => {
-                // Final: Render Plain Text + Math (NO Markdown)
                 renderTextWithMath(ui.docs.paper, final);
                 ui.docs.stop.style.display = 'none';
             });
@@ -489,7 +477,7 @@
             const newId = activeChatId || Date.now();
             activeChatId = newId;
             savedChats.unshift({id:newId, title:title, messages:[...currentMessages]});
-            localStorage.setItem('suite_history_fixed', JSON.stringify(savedChats));
+            localStorage.setItem('suite_history_math_fixed', JSON.stringify(savedChats));
             renderHistory();
         }
 
@@ -526,7 +514,7 @@
 
         function clearAllData() {
             if(confirm("Delete history?")) {
-                localStorage.removeItem('suite_history_fixed');
+                localStorage.removeItem('suite_history_math_fixed');
                 savedChats = [];
                 startNewChat();
                 renderHistory();
