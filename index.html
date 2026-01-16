@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New Chat</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Roboto:wght@400;500;700&family=Google+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Roboto:wght@400;500;700&family=Google+Sans:wght@400;500&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -15,23 +15,16 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
     <style>
-        /* =========================================
-           GLOBAL THEMES
-           ========================================= */
+        /* GLOBAL VARS */
         :root {
-            /* DEFAULT (GPT) */
             --bg-body: #343541; --text-primary: #ececf1; --font-main: 'Segoe UI', sans-serif;
             --bg-sidebar: #202123; --bg-ai: #444654; --input-bg: #40414f; --border: #4d4d4f; --accent: #10a37f;
         }
-
         body.theme-canvas {
-            /* CANVAS */
             --bg-body: #F5F5F5; --text-primary: #2D3B45; --font-main: 'Lato', sans-serif;
             --bg-sidebar: #2D3B45; --input-bg: #FFFFFF; --border: #C7CDD1; --accent: #0374B5;
         }
-
         body.theme-docs {
-            /* GOOGLE DOCS */
             --bg-body: #F9FBFD; --text-primary: #202124; --font-main: 'Roboto', sans-serif;
             --bg-sidebar: #fff; --input-bg: #fff; --border: #dadce0; --accent: #1A73E8;
         }
@@ -39,28 +32,60 @@
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; background: var(--bg-body); color: var(--text-primary); font-family: var(--font-main); display: flex; height: 100vh; overflow: hidden; transition: background 0.2s; }
 
-        /* SWITCH BUTTON */
-        #mode-switch {
-            position: fixed; top: 15px; right: 20px; z-index: 10000;
-            padding: 10px 20px; border-radius: 6px; cursor: pointer; border: none;
-            font-weight: bold; transition: all 0.3s;
+        /* --- DROPDOWN (Bottom Right) --- */
+        #mode-select {
+            position: fixed; bottom: 20px; right: 20px; z-index: 10000;
+            padding: 8px 12px; border-radius: 6px; cursor: pointer; 
+            font-weight: bold; font-family: inherit; font-size: 0.85rem;
+            outline: none; transition: all 0.2s; text-align: center; appearance: none;
         }
-        body:not(.theme-canvas):not(.theme-docs) #mode-switch {
-            background: #10a37f; color: white; opacity: 1; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-        body:not(.theme-canvas):not(.theme-docs) #mode-switch:hover { background: #1a7f64; }
-        body.theme-canvas #mode-switch, body.theme-docs #mode-switch {
-            background: rgba(0,0,0,0.8); color: white; opacity: 0; padding: 5px 10px; font-size: 0.7rem;
-        }
-        body.theme-canvas #mode-switch:hover, body.theme-docs #mode-switch:hover { opacity: 1; }
+        body:not(.theme-canvas):not(.theme-docs) #mode-select { background: #202123; color: #ececf1; border: 1px solid #565869; }
+        body:not(.theme-canvas):not(.theme-docs) #mode-select:hover { background: #2b2c2f; }
+        body.theme-canvas #mode-select { background: #2D3B45; color: white; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        body.theme-docs #mode-select { background: #C2E7FF; color: #001d35; border: none; border-radius: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 
         .interface-view { display: none; width: 100%; height: 100%; }
         .interface-view.active { display: flex; }
 
+        /* --- EDITABLE FIELDS STYLE (UPDATED: NO BLUE OUTLINE) --- */
+        [contenteditable] { 
+            outline: none !important; 
+            border: none !important;
+        }
+        [contenteditable]:hover { cursor: text; }
+        [contenteditable]:focus { 
+            outline: none !important; 
+            background: white !important; /* Ensure it stays white */
+            box-shadow: none !important; /* Remove any glow */
+        }
+        /* Restore the specific box-shadow for the page only, not the focus state */
+        .doc-page { box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important; }
 
-        /* =========================================
-           UI 1: CHATGPT
-           ========================================= */
+        /* --- SMART TOOLBAR DROPDOWN --- */
+        .smart-tools { position: relative; display: inline-block; }
+        .smart-dropdown {
+            display: none; position: absolute; top: 100%; left: 0; background: white; 
+            border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 150px; z-index: 1000; overflow: hidden;
+        }
+        .smart-tools:hover .smart-dropdown { display: block; }
+        .smart-btn { 
+            display: block; width: 100%; padding: 8px 12px; text-align: left; background: none; 
+            border: none; cursor: pointer; font-size: 0.85rem; color: #333; 
+        }
+        .smart-btn:hover { background: #f0f0f0; }
+
+        /* --- PANIC OVERLAY (Wikipedia) --- */
+        #panic-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; color: black; z-index: 99999; font-family: sans-serif;
+            overflow-y: auto;
+        }
+        .wiki-header { height: 50px; border-bottom: 1px solid #a2a9b1; display: flex; align-items: center; padding: 0 20px; background: #fff; }
+        .wiki-content { max-width: 900px; margin: 0 auto; padding: 20px; background: white; line-height: 1.6; }
+        .wiki-title { font-family: 'Linux Libertine', 'Georgia', Times, serif; font-size: 1.8rem; border-bottom: 1px solid #a2a9b1; padding-bottom: 5px; margin-bottom: 15px; }
+        
+        /* UI 1: CHATGPT */
         #ui-gpt { flex-direction: row; }
         .gpt-sidebar { width: 260px; background: var(--bg-sidebar); display: flex; flex-direction: column; padding: 10px; border-right: 1px solid black; }
         @media(max-width:768px){.gpt-sidebar{display:none}}
@@ -69,10 +94,8 @@
         .gpt-history { flex: 1; overflow-y: auto; margin-top: 20px; }
         .gpt-nav-item { padding: 10px; color: #ececf1; cursor: pointer; border-radius: 5px; font-size: 0.9rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .gpt-nav-item:hover { background: #2a2b32; }
-        
         .gpt-main { flex: 1; display: flex; flex-direction: column; position: relative; }
         .gpt-chat { flex: 1; overflow-y: auto; padding-bottom: 40px; }
-        
         .msg-row { border-bottom: 1px solid rgba(0,0,0,0.1); padding: 24px; display: flex; justify-content: center; width: 100%; }
         .msg-row.ai { background: #444654; }
         .msg-content { max-width: 800px; width: 100%; display: flex; gap: 20px; }
@@ -80,7 +103,6 @@
         .avatar.u { background: #5436da; color: white; }
         .avatar.g { background: #10a37f; color: white; }
         .text-block { flex: 1; overflow-x: hidden; }
-        
         .gpt-input-area { width: 100%; border-top: 1px solid rgba(255,255,255,0.1); padding: 20px 0 40px 0; display: flex; flex-direction: column; align-items: center; background: var(--bg-body); z-index: 10; }
         .gpt-box { width: 90%; max-width: 768px; background: #40414f; border: 1px solid rgba(0,0,0,0.2); border-radius: 12px; display: flex; align-items: flex-end; padding: 10px; }
         .gpt-textarea { flex: 1; background: transparent; border: none; color: white; resize: none; max-height: 200px; height: 24px; outline: none; font-family: inherit; font-size: 1rem; line-height: 1.5; overflow-y: hidden; }
@@ -88,32 +110,25 @@
         .gpt-send { background: transparent; border: none; color: #ccc; cursor: pointer; padding: 5px; }
         pre { background: black; padding: 15px; border-radius: 6px; overflow-x: auto; } code { font-family: 'Consolas', monospace; }
 
-
-        /* =========================================
-           UI 2: CANVAS (Fixed)
-           ========================================= */
+        /* UI 2: CANVAS */
         #ui-canvas { flex-direction: row; background: #F5F5F5; color: #2D3B45; }
-        
         .cv-global { width: 84px; background: #2D3B45; display: flex; flex-direction: column; align-items: center; padding-top: 15px; flex-shrink: 0; }
         .cv-logo { width: 100%; height: 60px; background: url("data:image/svg+xml,%3Csvg viewBox='0 0 1920 1920' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1111.4 0c-48.4 125.4-86.4 227.6-118.8 301-20.4-45.6-39.6-88.6-67-152.4-78 178.6-149.6 342-230.2 526.4 19.8-5.8 36.8-11.2 54-15.8 114.2-30.8 221.8 16 280.6 116.2 38.6 65.6 44 135 23.4 207-24 83.8-106.6 156.4-209.6 183.8-118.4 31.6-216.4-26-267.4-118-20-36.2-28.8-74.6-26.2-116.6 2.4-38.4 12.6-74.4 34.6-107.6 10.4-15.8 22-30.8 34.2-47.8-80.4-192.4-160.8-384.4-245.2-586.2C226.4 564.4 78.4 938.8 0 1139.6c43.6 14.8 102.8 20.8 136.6 57 26.6 28.6 38.4 66.2 41 105.4 3.4 50.8-10 98.4-41 139.2-34.6 45.4-81.8 72.8-136.2 78.4-1.2 38.8 4.2 77.2 21.6 112 37.8 75.8 107.6 122.6 190.2 133 118.4 14.8 226-50.6 270.2-162.2 16.6-41.8 20.2-85 14.2-129.2-5-36.4-17-70.2-40.4-100-34.8-44.4-82-71-137.6-76.8l158.2-421c9.2 18.2 16.6 32.2 23.4 46.4 61.2 127 122.2 254.2 184.2 381 18.2 37.2 35 75.2 55.4 119-106.8 65-161.4 162.6-145 288.4 14.4 110 89.2 199 194.2 230.2 147.4 43.8 300.2-40.2 353-186.2 29.8-82.6 19.8-163-23.4-239.2-42-74-106.8-116-191-125.6 16.4-38.4 31-73 45.8-107.4 71.4-166.4 142.8-332.8 214.2-499.2 27.2 59.8 52.8 116.4 78.6 172.8 57.6 125.8 115.4 251.6 172.2 377.8 10.4 23 17.6 47.4 27.2 73.4-98.8 61.2-152 153.2-143.6 271.6 8.2 116.2 82.2 208.2 191.6 238.2 143.2 39.2 290.4-43.2 338.8-183.2 28.2-81.4 19.4-160.8-22.4-236.4-43.4-78.6-112.4-121-201.2-126 102.8-261 205.2-520.8 308.2-782.2L1111.4 0zm-817 1373.2c5.6 37.2-2 70.4-23 99.6-21.6 30-51.4 48.6-88.2 54.4-6-47-1-85 20-117.8 21-32.8 52.4-52.2 91.2-36.2zm588-469.6c43.6-12.8 84.6-6 122.2 19.6 35.8 24.4 57.4 59.2 64.6 101.8 8 47.6-3 90.8-31 127.8-29.4 38.6-68.8 60.2-117.2 63.8-49.4 3.6-92.4-12.4-126.2-49.4-33-36.2-48.4-79.6-43.4-128.2 5.2-50 31.4-90 73-118 18.2-12.2 38.4-18.4 58-17.4zm141.6 743.8c-30.8 39.2-70.4 61-120.2 64.2-5.4-45.8 0-84.4 21-116 21.6-32.4 53.6-51.4 92.8-35.8 6.4 2.6 10.6 19.4 6.4 87.6zm506 200.2c-31 39-70.8 60.8-120.6 63.6-5.4-45.8 0-84.4 21-116 21.6-32.4 53.6-51.4 92.8-35.8 6.4 2.6 10.6 19.4 6.8 88.2z' fill='%23FFFFFF'/%3E%3C/svg%3E") no-repeat center; background-size: 50%; }
-        
         .cv-icon { width: 100%; height: 70px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; cursor: pointer; border-left: 3px solid transparent; transition:0.2s; gap:4px; }
         .cv-icon:hover { background: rgba(255,255,255,0.1); }
         .cv-icon.active { background: white; color: #2D3B45; border-left: 3px solid #0374B5; }
         .cv-svg { width: 26px; height: 26px; fill: currentColor; }
-
         .cv-course { width: 180px; background: white; border-right: 1px solid #c7cdd1; display: flex; flex-direction: column; padding: 20px 0; }
         .cv-item { padding: 8px 20px; color: #0374B5; cursor: pointer; font-size: 0.9rem; }
         .cv-item:hover { text-decoration: underline; background: #f5f5f5; }
         .cv-item.active { color: black; font-weight: bold; border-left: 2px solid black; }
-
         .cv-main { flex: 1; background: white; display: flex; flex-direction: column; overflow: hidden; }
         .cv-header { padding: 20px 40px; border-bottom: 1px solid #c7cdd1; }
-        .cv-content { padding: 20px 40px; overflow-y: auto; flex: 1; }
-        .cv-editor { border: 1px solid #ccc; border-radius: 4px; overflow: hidden; margin-top: 15px; }
-        .cv-toolbar { background: #f5f5f5; border-bottom: 1px solid #ccc; padding: 8px; display: flex; gap: 10px; font-size: 0.85rem; color: #555; }
+        .cv-content { padding: 20px 40px; overflow-y: auto; flex: 1; scroll-behavior: smooth; }
+        .cv-editor { border: 1px solid #ccc; border-radius: 4px; margin-top: 15px; background: white; }
+        .cv-toolbar { background: #f5f5f5; border-bottom: 1px solid #ccc; padding: 8px; display: flex; gap: 10px; font-size: 0.85rem; color: #555; align-items: center; }
         
-        .cv-paper { width: 100%; min-height: 400px; height: 400px; padding: 15px; outline: none; overflow-y: auto; font-family: 'Times New Roman', serif; font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap; }
+        .cv-paper { width: 100%; min-height: 400px; height: fit-content; padding: 15px; font-family: 'Times New Roman', serif; font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap; overflow: visible; overflow-wrap: break-word; color: #000; }
         .cv-paper:empty:before { content: "Start typing response..."; color: #999; }
         
         .cv-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-bottom: 50px; }
@@ -121,28 +136,41 @@
         .btn-c-sec { background: transparent; border-color: #ccc; color: #555; }
         .btn-c-pri { background: #0374B5; color: white; }
 
-
-        /* =========================================
-           UI 3: GOOGLE DOCS
-           ========================================= */
+        /* UI 3: GOOGLE DOCS */
         #ui-docs { flex-direction: column; background: #F9FBFD; color: #202124; }
         .doc-header { height: 64px; background: white; display: flex; align-items: center; padding: 0 16px; gap: 15px; }
         .doc-logo { width: 40px; height: 40px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%234285F4' d='M27.5 40H7.5C4.7 40 2.5 37.8 2.5 35V5C2.5 2.2 4.7 0 7.5 0h12.5l15 15v20c0 2.8-2.2 5-5 5z'/%3E%3Cpath fill='%23A0C2F9' d='M27.5 15H20V0l15 15z'/%3E%3Cpath fill='%23FFF' d='M20 22.5h-7.5v-2.5H20v2.5zm5 5h-12.5V25H25v2.5zm0 5h-12.5V30H25v2.5z'/%3E%3C/svg%3E") no-repeat center/contain; cursor: pointer; }
-        .doc-title { font-family: 'Google Sans', sans-serif; font-size: 18px; color: #202124; }
+        .doc-title { font-family: 'Google Sans', sans-serif; font-size: 18px; color: #202124; border-radius: 4px; padding: 2px 5px; }
         .doc-menu { display: flex; gap: 10px; font-size: 14px; margin-top: 4px; }
         .doc-toolbar { margin: 10px 16px; background: #EDF2FA; height: 40px; border-radius: 20px; display: flex; align-items: center; padding: 0 15px; gap: 15px; font-size: 14px; color: #444; }
-        .doc-body { flex: 1; overflow-y: auto; display: flex; justify-content: center; padding: 24px 0; }
-        .doc-page { width: 816px; min-height: 1056px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.15); padding: 72px; outline: none; font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; white-space: pre-wrap; }
+        .doc-body { flex: 1; overflow-y: auto; display: flex; justify-content: center; padding: 24px 0; scroll-behavior: smooth; padding-bottom: 100px; }
+        .doc-page { width: 816px; min-height: 1056px; height: fit-content; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.15); padding: 72px; font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; white-space: pre-wrap; overflow-wrap: break-word; color: #000; }
         .doc-page:empty:before { content: "Type @ to insert"; color: #ccc; }
         .btn-share { background: #C2E7FF; color: #001d35; border: none; padding: 10px 24px; border-radius: 24px; font-family: 'Google Sans'; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-left: auto; }
         .btn-share:hover { background: #b3d7ef; }
         .btn-stop-doc { background: #e8eaed; color: #3c4043; border: none; padding: 8px 16px; border-radius: 24px; cursor: pointer; font-weight: 500; display: none; margin-right: 10px; }
-
+        .doc-last-edit { color: #5f6368; font-size: 12px; margin-left: 15px; margin-top: 2px; }
     </style>
 </head>
 <body>
 
-    <button id="mode-switch" onclick="cycleMode()">Enter Stealth Mode</button>
+    <select id="mode-select" onchange="changeMode(this.value)">
+        <option value="gpt">Normal Mode</option>
+        <option value="canvas">Assignment Mode</option>
+        <option value="docs">Document Mode</option>
+    </select>
+
+    <div id="panic-overlay">
+        <div class="wiki-header">
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/8/80/Wikipedia-logo-v2.svg/103px-Wikipedia-logo-v2.svg.png" height="35" alt="Wiki">
+            <input type="text" value="History of the printing press" style="margin-left: 15px; padding: 5px; width: 300px;">
+        </div>
+        <div class="wiki-content">
+            <h1 class="wiki-title">History of the printing press</h1>
+            <p>The printing press is a device for applying pressure to an inked surface resting upon a print medium (such as paper or cloth), thereby transferring the ink. It marked a dramatic improvement on earlier printing methods in which the cloth, paper or other medium was brushed or rubbed repeatedly to achieve the transfer of ink. Typically used for texts, the invention and spread of the printing press was one of the most influential events in the second millennium.</p>
+            <p>In Germany, around 1440, goldsmith Johannes Gutenberg invented the printing press, which started the Printing Revolution. Modeled on the design of existing screw presses, a single Renaissance printing press could produce up to 3,600 pages per workday, compared to forty by typographic hand-printing and a few by hand-copying.</p>
+        </div>
+    </div>
 
     <div id="ui-gpt" class="interface-view active">
         <div class="gpt-sidebar">
@@ -175,29 +203,14 @@
     <div id="ui-canvas" class="interface-view">
         <div class="cv-global">
             <div class="cv-logo"></div>
-            <div class="cv-icon">
-                <svg class="cv-svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                <div>Account</div>
-            </div>
-            <div class="cv-icon">
-                <svg class="cv-svg" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-                <div>Dashboard</div>
-            </div>
-            <div class="cv-icon active">
-                <svg class="cv-svg" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></svg>
-                <div>Courses</div>
-            </div>
-            <div class="cv-icon">
-                <svg class="cv-svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-2 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
-                <div>Calendar</div>
-            </div>
-            <div class="cv-icon">
-                <svg class="cv-svg" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                <div>Inbox</div>
-            </div>
+            <div class="cv-icon"><svg class="cv-svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg><div>Account</div></div>
+            <div class="cv-icon"><svg class="cv-svg" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><div>Dashboard</div></div>
+            <div class="cv-icon active"><svg class="cv-svg" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></svg><div>Courses</div></div>
+            <div class="cv-icon"><svg class="cv-svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-2 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg><div>Calendar</div></div>
+            <div class="cv-icon"><svg class="cv-svg" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg><div>Inbox</div></div>
         </div>
         <div class="cv-course">
-            <div style="padding:0 20px 10px; color:#666; font-size:0.8rem; border-bottom:1px solid #eee;">FALL 2025</div>
+            <div style="padding:0 20px 10px; color:#666; font-size:0.8rem; border-bottom:1px solid #eee;" contenteditable="true">FALL 2025</div>
             <div class="cv-item">Home</div>
             <div class="cv-item active">Assignments</div>
             <div class="cv-item">Grades</div>
@@ -205,8 +218,10 @@
         </div>
         <div class="cv-main">
             <div class="cv-header">
-                <div style="font-size:0.85rem; color:#0374B5;">English 101 > Assignments > Final Essay</div>
-                <h1 style="font-size:1.8rem; font-weight:400; margin:5px 0 0;">Final Research Essay</h1>
+                <div style="font-size:0.85rem; color:#0374B5;">
+                    <span contenteditable="true">English 101</span> > Assignments > <span contenteditable="true">Final Essay</span>
+                </div>
+                <h1 style="font-size:1.8rem; font-weight:400; margin:5px 0 0;" contenteditable="true">Final Research Essay</h1>
             </div>
             <div class="cv-content">
                 <div style="display:flex; gap:30px; border-bottom:1px solid #ccc; padding-bottom:15px; margin-bottom:20px; font-size:0.9rem; color:#555;">
@@ -217,10 +232,20 @@
                 <div class="cv-editor">
                     <div class="cv-toolbar">
                         <b>B</b> <i>I</i> <u>U</u> | <span style="color:#0374B5">Link</span> <span style="color:#0374B5">Equation</span>
+                        <div class="smart-tools" style="margin-left:15px;">
+                            <span style="color:#0374B5; cursor:pointer;">✨ Magic Tools</span>
+                            <div class="smart-dropdown">
+                                <button class="smart-btn" onclick="runSmartAction('fix')">Fix Grammar</button>
+                                <button class="smart-btn" onclick="runSmartAction('expand')">Make Longer</button>
+                                <button class="smart-btn" onclick="runSmartAction('shorten')">Make Shorter</button>
+                            </div>
+                        </div>
+                        <span style="float:right; color:#555; font-size:0.8rem; margin-left:auto;" id="cv-word-count">0 words</span>
                     </div>
                     <div id="canvas-paper" class="cv-paper" contenteditable="true"></div>
                 </div>
                 <div class="cv-footer">
+                    <button class="btn-c btn-c-sec" onclick="downloadContent()">Save as .txt</button>
                     <button class="btn-c btn-c-sec" onclick="stopGen()">Cancel</button>
                     <button class="btn-c btn-c-pri" onclick="handleCanvasSend()">Submit Assignment</button>
                 </div>
@@ -233,7 +258,22 @@
             <div class="doc-logo"></div>
             <div>
                 <div class="doc-title" contenteditable="true">Untitled document</div>
-                <div class="doc-menu"><div>File</div><div>Edit</div><div>View</div><div>Insert</div><div>Format</div><div>Tools</div></div>
+                <div class="doc-menu">
+                    <div>File</div>
+                    <div onclick="downloadContent()" style="cursor:pointer">Download</div>
+                    <div>View</div>
+                    <div>Insert</div>
+                    <div>Format</div>
+                    <div class="smart-tools" style="cursor:pointer">
+                        Tools ▼
+                        <div class="smart-dropdown">
+                            <button class="smart-btn" onclick="runSmartAction('fix')">Fix Grammar</button>
+                            <button class="smart-btn" onclick="runSmartAction('expand')">Expand Text</button>
+                            <button class="smart-btn" onclick="runSmartAction('shorten')">Shorten Text</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="doc-last-edit" class="doc-last-edit">Last edit was seconds ago</div>
             </div>
             <button id="doc-stop" class="btn-stop-doc" onclick="stopGen()">Stop</button>
             <button class="btn-share" onclick="handleDocsSend()">Share</button>
@@ -241,6 +281,7 @@
         </div>
         <div class="doc-toolbar">
             <span>🖨️</span><span>100%</span> | <span>Normal text</span> | <span>Arial</span> <span><b>B</b></span> <span><i>I</i></span> <span><u>U</u></span>
+            <span style="margin-left:auto; font-size:0.8rem; color:#555;" id="doc-word-count">0 words</span>
         </div>
         <div class="doc-body">
             <div id="docs-paper" class="doc-page" contenteditable="true"></div>
@@ -253,11 +294,12 @@
         let currentModeIndex = 0;
         let currentMessages = []; 
         let activeChatId = null;
-        let savedChats = JSON.parse(localStorage.getItem('suite_history_math_fixed')) || [];
+        let savedChats = JSON.parse(localStorage.getItem('suite_history_seamless')) || [];
         let abortCtrl = null;
 
         const ui = {
-            btnSwitch: document.getElementById('mode-switch'),
+            select: document.getElementById('mode-select'),
+            panic: document.getElementById('panic-overlay'),
             views: {
                 gpt: document.getElementById('ui-gpt'),
                 canvas: document.getElementById('ui-canvas'),
@@ -271,8 +313,8 @@
                 empty: document.getElementById('gpt-empty'),
                 hist: document.getElementById('gpt-history')
             },
-            canvas: { paper: document.getElementById('canvas-paper') },
-            docs: { paper: document.getElementById('docs-paper'), stop: document.getElementById('doc-stop') }
+            canvas: { paper: document.getElementById('canvas-paper'), count: document.getElementById('cv-word-count') },
+            docs: { paper: document.getElementById('docs-paper'), stop: document.getElementById('doc-stop'), count: document.getElementById('doc-word-count'), lastEdit: document.getElementById('doc-last-edit') }
         };
 
         window.onload = () => {
@@ -282,69 +324,127 @@
             document.title = "New Chat";
         };
 
-        // --- ENTER KEY HANDLER (Stealth Mode) ---
+        // --- PANIC MODE ---
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                ui.panic.style.display = ui.panic.style.display === 'block' ? 'none' : 'block';
+                if(ui.panic.style.display === 'block') document.title = "History of the printing press - Wikipedia";
+                else changeMode(ui.select.value);
+            }
+        });
+
+        // --- WORD COUNT & REALISM ---
+        function updateStats(element, countDisplay) {
+            const text = element.innerText || "";
+            const count = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+            countDisplay.innerText = count + " words";
+            if(ui.select.value === 'docs') ui.docs.lastEdit.innerText = "Last edit was seconds ago";
+        }
+        ui.canvas.paper.addEventListener('input', () => updateStats(ui.canvas.paper, ui.canvas.count));
+        ui.docs.paper.addEventListener('input', () => updateStats(ui.docs.paper, ui.docs.count));
+
+        // --- ENTER KEY HANDLER ---
         function handleEnter(e, callback) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 callback();
             }
         }
-        
         ui.canvas.paper.addEventListener('keydown', (e) => handleEnter(e, handleCanvasSend));
         ui.docs.paper.addEventListener('keydown', (e) => handleEnter(e, handleDocsSend));
 
+        // --- EXPORT ---
+        function downloadContent() {
+            let text = "";
+            let filename = "document.txt";
+            if (ui.select.value === 'canvas') {
+                text = ui.canvas.paper.innerText;
+                filename = "assignment.txt";
+            } else if (ui.select.value === 'docs') {
+                text = ui.docs.paper.innerText;
+            }
+            const blob = new Blob([text], { type: 'text/plain' });
+            const anchor = document.createElement('a');
+            anchor.href = URL.createObjectURL(blob);
+            anchor.download = filename;
+            anchor.click();
+        }
+
+        // --- SMART EDIT TOOLS ---
+        async function runSmartAction(type) {
+            let activePaper = ui.select.value === 'canvas' ? ui.canvas.paper : ui.docs.paper;
+            let currentText = activePaper.innerText;
+            if(!currentText) return;
+
+            let prompt = "";
+            if(type === 'fix') prompt = "Fix the grammar and spelling in the following text. Output ONLY the corrected text:\n\n" + currentText;
+            if(type === 'expand') prompt = "Expand the following text to be more detailed and academic. Output ONLY the new text:\n\n" + currentText;
+            if(type === 'shorten') prompt = "Shorten the following text to be concise. Output ONLY the new text:\n\n" + currentText;
+
+            activePaper.innerText = ""; 
+            if(ui.select.value === 'docs') ui.docs.stop.style.display = 'inline-block';
+            
+            const context = [{role:'system', content:"You are a helpful editing assistant."}, {role:'user', content:prompt}];
+            await fetchResponse(context, (txt) => {
+                activePaper.innerText = txt;
+                if(ui.select.value === 'canvas') { const p = document.querySelector('.cv-content'); p.scrollTop = p.scrollHeight; }
+                if(ui.select.value === 'docs') { const p = document.querySelector('.doc-body'); p.scrollTop = p.scrollHeight; }
+                updateStats(activePaper, ui.select.value === 'canvas' ? ui.canvas.count : ui.docs.count);
+            }, (final) => {
+                renderMarkdownWithMath(activePaper, final);
+                if(ui.select.value === 'docs') ui.docs.stop.style.display = 'none';
+            });
+        }
+
         // --- MODE SWITCHING ---
-        function cycleMode() {
-            ui.views[modes[currentModeIndex]].classList.remove('active');
-            currentModeIndex = (currentModeIndex + 1) % modes.length;
-            const newMode = modes[currentModeIndex];
-            ui.views[newMode].classList.add('active');
+        function changeMode(mode) {
+            ui.select.value = mode;
+            Object.values(ui.views).forEach(el => el.classList.remove('active'));
+            ui.views[mode].classList.add('active');
 
             document.body.className = ''; 
-            if (newMode === 'canvas') document.body.classList.add('theme-canvas');
-            if (newMode === 'docs') document.body.classList.add('theme-docs');
+            if (mode === 'canvas') document.body.classList.add('theme-canvas');
+            if (mode === 'docs') document.body.classList.add('theme-docs');
 
-            if (newMode === 'gpt') {
-                ui.btnSwitch.innerText = "Enter Stealth Mode";
-                ui.gpt.input.focus();
+            if (mode === 'gpt') {
                 document.title = "New Chat";
-            } else if (newMode === 'canvas') {
-                ui.btnSwitch.innerText = "Switch View";
+                ui.gpt.input.focus();
+            } else if (mode === 'canvas') {
                 document.title = "Final Research Essay";
-            } else if (newMode === 'docs') {
-                ui.btnSwitch.innerText = "Switch View";
+                ui.canvas.paper.focus();
+            } else if (mode === 'docs') {
                 document.title = "Untitled document - Google Docs";
+                ui.docs.paper.focus();
             }
         }
 
-        // --- RENDERERS ---
-        
-        // 1. ChatGPT Renderer (Markdown + Math)
+        // --- UNIVERSAL RENDERER (The Fix) ---
         function renderMarkdownWithMath(element, text) {
+            // 1. Hide Math from Markdown
             const mathSegments = [];
             const protectedText = text.replace(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\))/g, (match) => {
                 mathSegments.push(match);
                 return `%%%MATH${mathSegments.length - 1}%%%`;
             });
-            let html = marked.parse(protectedText);
-            html = html.replace(/%%%MATH(\d+)%%%/g, (match, index) => mathSegments[index]);
-            element.innerHTML = html;
-            renderMathInElement(element, {
-                delimiters: [{left: '$$', right: '$$', display: true}, {left: '\\[', right: '\\]', display: true}, {left: '\\(', right: '\\)', display: false}],
-                throwOnError: false
-            });
-            element.querySelectorAll('pre code').forEach(hljs.highlightElement);
-        }
 
-        // 2. Canvas/Docs Renderer (Plain Text + Math Only)
-        function renderTextWithMath(element, text) {
-            let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            html = html.replace(/\n/g, '<br>');
+            // 2. Parse Markdown (Handles Bold, Italics, Lists)
+            marked.setOptions({ breaks: true, gfm: true });
+            let html = marked.parse(protectedText);
+
+            // 3. Restore Math
+            html = html.replace(/%%%MATH(\d+)%%%/g, (match, index) => mathSegments[index]);
+
+            // 4. Inject
             element.innerHTML = html;
+
+            // 5. Render Math
             renderMathInElement(element, {
                 delimiters: [{left: '$$', right: '$$', display: true}, {left: '\\[', right: '\\]', display: true}, {left: '\\(', right: '\\)', display: false}],
                 throwOnError: false
             });
+            
+            // 6. Highlight Code (if any)
+            element.querySelectorAll('pre code').forEach(hljs.highlightElement);
         }
 
         // --- CORE AI ---
@@ -413,7 +513,6 @@
 
             ui.gpt.stop.style.display = 'inline-block';
             const {contentDiv} = addMessageToUI('ai', '<span class="cursor"></span>');
-            
             const context = [{role:'system', content:"You are ChatGPT. Use LaTeX for math."}, ...currentMessages.slice(-6)];
             await fetchResponse(context, (txt) => {
                 contentDiv.innerHTML = marked.parse(txt);
@@ -444,9 +543,10 @@
             const context = [{role:'system', content:"You are ChatGPT. Use LaTeX for math."}, {role:'user', content:text}];
             await fetchResponse(context, (txt) => {
                 ui.canvas.paper.innerText = txt; 
-                ui.canvas.paper.scrollTop = ui.canvas.paper.scrollHeight;
+                const p = document.querySelector('.cv-content'); p.scrollTop = p.scrollHeight;
+                updateStats(ui.canvas.paper, ui.canvas.count);
             }, (final) => {
-                renderTextWithMath(ui.canvas.paper, final);
+                renderMarkdownWithMath(ui.canvas.paper, final);
             });
         }
 
@@ -460,8 +560,10 @@
             const context = [{role:'system', content:"You are ChatGPT. Use LaTeX for math."}, {role:'user', content:text}];
             await fetchResponse(context, (txt) => {
                 ui.docs.paper.innerText = txt;
+                const p = document.querySelector('.doc-body'); p.scrollTop = p.scrollHeight;
+                updateStats(ui.docs.paper, ui.docs.count);
             }, (final) => {
-                renderTextWithMath(ui.docs.paper, final);
+                renderMarkdownWithMath(ui.docs.paper, final);
                 ui.docs.stop.style.display = 'none';
             });
         }
@@ -477,7 +579,7 @@
             const newId = activeChatId || Date.now();
             activeChatId = newId;
             savedChats.unshift({id:newId, title:title, messages:[...currentMessages]});
-            localStorage.setItem('suite_history_math_fixed', JSON.stringify(savedChats));
+            localStorage.setItem('suite_history_seamless', JSON.stringify(savedChats));
             renderHistory();
         }
 
@@ -495,6 +597,7 @@
         function loadChat(chat) {
             currentMessages = [...chat.messages];
             activeChatId = chat.id;
+            changeMode('gpt');
             ui.gpt.chat.innerHTML = '';
             ui.gpt.empty.style.display = 'none';
             currentMessages.forEach(m => {
@@ -514,7 +617,7 @@
 
         function clearAllData() {
             if(confirm("Delete history?")) {
-                localStorage.removeItem('suite_history_math_fixed');
+                localStorage.removeItem('suite_history_seamless');
                 savedChats = [];
                 startNewChat();
                 renderHistory();
